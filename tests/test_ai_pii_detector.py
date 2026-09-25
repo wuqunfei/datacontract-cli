@@ -1,5 +1,8 @@
+import pytest
+
 from datacontract.ai.annotate import mark_pii_columns
 from datacontract.ai.pii_detector import PiiDetector
+from datacontract.ai.pii_detector_factory import pii_detector_factory
 from datacontract.ai.rule_based_pii_detector import RuleBasedPiiDetector
 from datacontract.imports.odcs_helper import create_odcs, create_property, create_schema_object
 
@@ -98,3 +101,14 @@ def test_mark_pii_columns_recurses_into_struct_properties():
     mark_pii_columns(odcs, detector)
 
     assert nested_email.classification == "PII"
+
+
+def test_factory_creates_rule_based_detector():
+    detector = pii_detector_factory.create("rule")
+
+    assert isinstance(detector, RuleBasedPiiDetector)
+
+
+def test_factory_raises_for_unknown_detector_name():
+    with pytest.raises(ValueError, match="not supported"):
+        pii_detector_factory.create("does-not-exist")
