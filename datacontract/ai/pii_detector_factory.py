@@ -34,3 +34,6 @@ pii_detector_factory = PiiDetectorFactory()
 pii_detector_factory.register_lazy_detector(
     PiiDetectionMethod.rule, "datacontract.ai.rule_based_pii_detector", "RuleBasedPiiDetector"
 )
+pii_detector_factory.register_lazy_detector(
+    PiiDetectionMethod.anthropic, "datacontract.ai.anthropic_pii_detector", "AnthropicPiiDetector"
+)

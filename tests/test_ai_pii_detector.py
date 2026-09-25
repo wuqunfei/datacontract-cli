@@ -1,10 +1,16 @@
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock
+
 import pytest
 
 from datacontract.ai.annotate import mark_pii_columns
 from datacontract.ai.pii_detector import PiiDetector
 from datacontract.ai.pii_detector_factory import pii_detector_factory
 from datacontract.ai.rule_based_pii_detector import RuleBasedPiiDetector
+from datacontract.config import Config
 from datacontract.imports.odcs_helper import create_odcs, create_property, create_schema_object
+from datacontract.model.exceptions import DataContractException
 
 
 def test_rule_based_detector_matches_known_pii_column_names():
@@ -112,3 +118,56 @@ def test_factory_creates_rule_based_detector():
 def test_factory_raises_for_unknown_detector_name():
     with pytest.raises(ValueError, match="not supported"):
         pii_detector_factory.create("does-not-exist")
+
+
+def test_anthropic_detector_parses_response(monkeypatch):
+    from datacontract.ai.anthropic_pii_detector import AnthropicPiiDetector
+
+    fake_response = SimpleNamespace(content=[SimpleNamespace(text='{"email": true, "order_id": false}')])
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+    fake_anthropic_module = SimpleNamespace(Anthropic=MagicMock(return_value=fake_client))
+    monkeypatch.setitem(sys.modules, "anthropic", fake_anthropic_module)
+
+    detector = AnthropicPiiDetector(Config(anthropic_api_key="key"))
+    result = detector.detect(["email", "order_id"])
+
+    assert result == {"email": True, "order_id": False}
+    call_kwargs = fake_client.messages.create.call_args.kwargs
+    assert "email" in call_kwargs["messages"][0]["content"]
+    assert "order_id" in call_kwargs["messages"][0]["content"]
+
+
+def test_anthropic_detector_requires_api_key(monkeypatch):
+    from datacontract.ai.anthropic_pii_detector import AnthropicPiiDetector
+
+    monkeypatch.delenv("DATACONTRACT_ANTHROPIC_API_KEY", raising=False)
+    detector = AnthropicPiiDetector(Config.model_construct())
+
+    with pytest.raises(DataContractException, match="DATACONTRACT_ANTHROPIC_API_KEY"):
+        detector.detect(["email"])
+
+
+def test_anthropic_detector_raises_when_package_missing(monkeypatch):
+    from datacontract.ai.anthropic_pii_detector import AnthropicPiiDetector
+
+    monkeypatch.setitem(sys.modules, "anthropic", None)
+    detector = AnthropicPiiDetector(Config(anthropic_api_key="key"))
+
+    with pytest.raises(DataContractException, match=r"datacontract-cli\[ai\]"):
+        detector.detect(["email"])
+
+
+def test_anthropic_detector_raises_on_malformed_response(monkeypatch):
+    from datacontract.ai.anthropic_pii_detector import AnthropicPiiDetector
+
+    fake_response = SimpleNamespace(content=[SimpleNamespace(text="not json")])
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+    fake_anthropic_module = SimpleNamespace(Anthropic=MagicMock(return_value=fake_client))
+    monkeypatch.setitem(sys.modules, "anthropic", fake_anthropic_module)
+
+    detector = AnthropicPiiDetector(Config(anthropic_api_key="key"))
+
+    with pytest.raises(DataContractException, match="Could not classify columns"):
+        detector.detect(["email"])
