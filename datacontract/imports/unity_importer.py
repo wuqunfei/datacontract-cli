@@ -6,6 +6,8 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.catalog import ColumnInfo, TableConstraint, TableInfo
 from open_data_contract_standard.model import OpenDataContractStandard, Relationship, SchemaProperty
 
+from datacontract.ai.annotate import mark_pii_columns
+from datacontract.ai.pii_detector_factory import pii_detector_factory
 from datacontract.config import Config
 from datacontract.imports.importer import Importer
 from datacontract.imports.odcs_helper import (
@@ -31,14 +33,23 @@ class UnityImporter(Importer):
         config: "Config | None" = None,
     ) -> OpenDataContractStandard:
         """Import data contract specification from a source."""
+        detect_pii = import_args.get("detect_pii", False)
+        pii_detector = import_args.get("pii_detector", "rule")
         if source is not None:
-            return import_unity_from_json(source)
+            return import_unity_from_json(source, config=config, detect_pii=detect_pii, pii_detector=pii_detector)
         else:
             unity_table_full_name_list = import_args.get("unity_table_full_name")
-            return import_unity_from_api(unity_table_full_name_list, config)
+            return import_unity_from_api(
+                unity_table_full_name_list, config, detect_pii=detect_pii, pii_detector=pii_detector
+            )
 
 
-def import_unity_from_json(source: str) -> OpenDataContractStandard:
+def import_unity_from_json(
+    source: str,
+    config: "Config | None" = None,
+    detect_pii: bool = False,
+    pii_detector: str = "rule",
+) -> OpenDataContractStandard:
     """Import data contract specification from a JSON file."""
     try:
         with open(source, "r", encoding="utf-8") as file:
@@ -54,12 +65,17 @@ def import_unity_from_json(source: str) -> OpenDataContractStandard:
         )
 
     odcs = convert_unity_schema(create_odcs(), unity_schema)
+    if detect_pii:
+        mark_pii_columns(odcs, pii_detector_factory.create(pii_detector, config))
     report_unmapped_types(odcs)
     return odcs
 
 
 def import_unity_from_api(
-    unity_table_full_name_list: List[str] = None, config: "Config | None" = None
+    unity_table_full_name_list: List[str] = None,
+    config: "Config | None" = None,
+    detect_pii: bool = False,
+    pii_detector: str = "rule",
 ) -> OpenDataContractStandard:
     """Import data contract specification from Unity Catalog API."""
     config = Config.resolve(config)
@@ -113,6 +129,8 @@ def import_unity_from_api(
             )
         odcs = convert_unity_schema(odcs, unity_schema)
 
+    if detect_pii:
+        mark_pii_columns(odcs, pii_detector_factory.create(pii_detector, config))
     report_unmapped_types(odcs)
     return odcs
 

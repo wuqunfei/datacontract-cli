@@ -266,6 +266,8 @@ databricks_table_option = Annotated[
 def import_databricks(
     source: databricks_source_option = None,
     table: databricks_table_option = None,
+    detect_pii: detect_pii_option = False,
+    pii_detector: pii_detector_option = "rule",
     output: output_option = None,
     schema: schema_option = None,
     owner: owner_option = None,
@@ -280,6 +282,8 @@ def import_databricks(
         source=source,
         schema=schema,
         unity_table_full_name=table,
+        detect_pii=detect_pii,
+        pii_detector=pii_detector,
         owner=owner,
         id=id,
     )
@@ -296,6 +300,8 @@ def import_databricks(
 def import_unity(
     source: databricks_source_option = None,
     table: databricks_table_option = None,
+    detect_pii: detect_pii_option = False,
+    pii_detector: pii_detector_option = "rule",
     output: output_option = None,
     schema: schema_option = None,
     owner: owner_option = None,
@@ -303,7 +309,17 @@ def import_unity(
     debug: debug_option = None,
 ):
     """Import a data contract from Databricks Unity Catalog (alias of `import databricks`)."""
-    import_databricks(source=source, table=table, output=output, schema=schema, owner=owner, id=id, debug=debug)
+    import_databricks(
+        source=source,
+        table=table,
+        detect_pii=detect_pii,
+        pii_detector=pii_detector,
+        output=output,
+        schema=schema,
+        owner=owner,
+        id=id,
+        debug=debug,
+    )
 
 
 @import_app.command(
