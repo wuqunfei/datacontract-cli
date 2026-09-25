@@ -171,3 +171,18 @@ def test_anthropic_detector_raises_on_malformed_response(monkeypatch):
 
     with pytest.raises(DataContractException, match="Could not classify columns"):
         detector.detect(["email"])
+
+
+def test_anthropic_detector_raises_on_non_dict_response(monkeypatch):
+    from datacontract.ai.anthropic_pii_detector import AnthropicPiiDetector
+
+    fake_response = SimpleNamespace(content=[SimpleNamespace(text='["email", "order_id"]')])
+    fake_client = MagicMock()
+    fake_client.messages.create.return_value = fake_response
+    fake_anthropic_module = SimpleNamespace(Anthropic=MagicMock(return_value=fake_client))
+    monkeypatch.setitem(sys.modules, "anthropic", fake_anthropic_module)
+
+    detector = AnthropicPiiDetector(Config(anthropic_api_key="key"))
+
+    with pytest.raises(DataContractException, match="Could not classify columns"):
+        detector.detect(["email"])

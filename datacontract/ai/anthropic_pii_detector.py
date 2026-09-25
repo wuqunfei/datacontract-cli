@@ -39,6 +39,7 @@ class AnthropicPiiDetector(PiiDetector):
                 messages=[{"role": "user", "content": prompt}],
             )
             result = json.loads(response.content[0].text)
+            return {name: bool(result.get(name, False)) for name in column_names}
         except Exception as e:
             raise DataContractException(
                 type="anthropic-connection",
@@ -47,4 +48,3 @@ class AnthropicPiiDetector(PiiDetector):
                 engine="datacontract-cli",
                 original_exception=e,
             )
-        return {name: bool(result.get(name, False)) for name in column_names}
