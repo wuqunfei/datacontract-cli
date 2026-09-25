@@ -2,7 +2,7 @@
 
 import logging
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterator, List, Tuple
 
 from open_data_contract_standard.model import (
     CustomProperty,
@@ -396,26 +396,30 @@ def map_sql_type_to_logical(sql_type: str) -> str | None:
     return SQL_TO_LOGICAL_TYPE.get(base_type)
 
 
+def walk_properties(props: List[SchemaProperty] | None, prefix: str = "") -> Iterator[Tuple[str, SchemaProperty]]:
+    """Yield (qualified_path, property) for every property, recursing into struct/array/map nesting."""
+    for prop in props or []:
+        path = f"{prefix}{prop.name}"
+        yield path, prop
+        yield from walk_properties(prop.properties, f"{path}.")
+        if prop.items:
+            yield from walk_properties([prop.items], f"{path}.")
+        if prop.map:
+            yield from walk_properties([side for side in (prop.map.key, prop.map.value) if side], f"{path}.")
+
+
 def report_unmapped_types(odcs: OpenDataContractStandard, fallback: str | None = None) -> None:
     """Warn once about every property imported with ``logical_type=None``; ``fallback`` fills it in
     where a later ``datacontract test`` needs every property typed."""
     unmapped = []
     qualify = len(odcs.schema_ or []) > 1
 
-    def walk(props: List[SchemaProperty] | None, prefix: str):
-        for prop in props or []:
-            path = f"{prefix}{prop.name}"
+    for schema_obj in odcs.schema_ or []:
+        prefix = f"{schema_obj.name}." if qualify else ""
+        for path, prop in walk_properties(schema_obj.properties, prefix):
             if prop.logicalType is None:
                 unmapped.append((path, prop.physicalType))
                 prop.logicalType = fallback
-            walk(prop.properties, f"{path}.")
-            if prop.items:
-                walk([prop.items], f"{path}.")
-            if prop.map:
-                walk([side for side in (prop.map.key, prop.map.value) if side], f"{path}.")
-
-    for schema_obj in odcs.schema_ or []:
-        walk(schema_obj.properties, f"{schema_obj.name}." if qualify else "")
 
     if not unmapped:
         return
