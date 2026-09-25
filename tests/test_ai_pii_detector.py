@@ -186,3 +186,79 @@ def test_anthropic_detector_raises_on_non_dict_response(monkeypatch):
 
     with pytest.raises(DataContractException, match="Could not classify columns"):
         detector.detect(["email"])
+
+
+def test_databricks_detector_queries_serving_endpoint(monkeypatch):
+    from datacontract.ai.databricks_pii_detector import DatabricksPiiDetector
+
+    fake_message = SimpleNamespace(content='{"email": true, "order_id": false}')
+    fake_choice = SimpleNamespace(message=fake_message)
+    fake_response = SimpleNamespace(choices=[fake_choice])
+    fake_serving_endpoints = MagicMock()
+    fake_serving_endpoints.query.return_value = fake_response
+    fake_workspace_client = MagicMock(serving_endpoints=fake_serving_endpoints)
+    monkeypatch.setattr(
+        "datacontract.ai.databricks_pii_detector.WorkspaceClient",
+        MagicMock(return_value=fake_workspace_client),
+    )
+
+    config = Config(databricks_pii_endpoint="pii-endpoint", databricks_profile="DEFAULT")
+    detector = DatabricksPiiDetector(config)
+    result = detector.detect(["email", "order_id"])
+
+    assert result == {"email": True, "order_id": False}
+    call_kwargs = fake_serving_endpoints.query.call_args.kwargs
+    assert call_kwargs["name"] == "pii-endpoint"
+
+
+def test_databricks_detector_requires_endpoint(monkeypatch):
+    from datacontract.ai.databricks_pii_detector import DatabricksPiiDetector
+
+    monkeypatch.delenv("DATACONTRACT_DATABRICKS_PII_ENDPOINT", raising=False)
+    config = Config(databricks_profile="DEFAULT")
+    detector = DatabricksPiiDetector(config)
+
+    with pytest.raises(DataContractException, match="DATACONTRACT_DATABRICKS_PII_ENDPOINT"):
+        detector.detect(["email"])
+
+
+def test_databricks_detector_raises_on_malformed_response(monkeypatch):
+    from datacontract.ai.databricks_pii_detector import DatabricksPiiDetector
+
+    fake_message = SimpleNamespace(content="not json")
+    fake_choice = SimpleNamespace(message=fake_message)
+    fake_response = SimpleNamespace(choices=[fake_choice])
+    fake_serving_endpoints = MagicMock()
+    fake_serving_endpoints.query.return_value = fake_response
+    fake_workspace_client = MagicMock(serving_endpoints=fake_serving_endpoints)
+    monkeypatch.setattr(
+        "datacontract.ai.databricks_pii_detector.WorkspaceClient",
+        MagicMock(return_value=fake_workspace_client),
+    )
+
+    config = Config(databricks_pii_endpoint="pii-endpoint", databricks_profile="DEFAULT")
+    detector = DatabricksPiiDetector(config)
+
+    with pytest.raises(DataContractException, match="Could not classify columns"):
+        detector.detect(["email"])
+
+
+def test_databricks_detector_raises_on_non_dict_response(monkeypatch):
+    from datacontract.ai.databricks_pii_detector import DatabricksPiiDetector
+
+    fake_message = SimpleNamespace(content='["email", "order_id"]')
+    fake_choice = SimpleNamespace(message=fake_message)
+    fake_response = SimpleNamespace(choices=[fake_choice])
+    fake_serving_endpoints = MagicMock()
+    fake_serving_endpoints.query.return_value = fake_response
+    fake_workspace_client = MagicMock(serving_endpoints=fake_serving_endpoints)
+    monkeypatch.setattr(
+        "datacontract.ai.databricks_pii_detector.WorkspaceClient",
+        MagicMock(return_value=fake_workspace_client),
+    )
+
+    config = Config(databricks_pii_endpoint="pii-endpoint", databricks_profile="DEFAULT")
+    detector = DatabricksPiiDetector(config)
+
+    with pytest.raises(DataContractException, match="Could not classify columns"):
+        detector.detect(["email"])

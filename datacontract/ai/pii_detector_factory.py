@@ -37,3 +37,6 @@ pii_detector_factory.register_lazy_detector(
 pii_detector_factory.register_lazy_detector(
     PiiDetectionMethod.anthropic, "datacontract.ai.anthropic_pii_detector", "AnthropicPiiDetector"
 )
+pii_detector_factory.register_lazy_detector(
+    PiiDetectionMethod.databricks, "datacontract.ai.databricks_pii_detector", "DatabricksPiiDetector"
+)
