@@ -8,6 +8,8 @@ description: "Create a data contract from a Postgres schema."
 
 Creates a data contract from a Postgres schema by reading table metadata from `information_schema` — including column types with length and precision, nullability, primary keys, foreign keys, and the comments stored in `pg_description`. Works with Postgres and Postgres-compatible databases (e.g. RisingWave).
 
+Add `--detect-pii` to automatically mark likely-PII columns with `classification: PII` and `criticalDataElement: true`, based on column name. `--pii-detector` selects how: `rule` (default, no credentials needed), `anthropic` (calls the Anthropic API directly), or `databricks` (calls a self-hosted Claude model behind a Databricks Model Serving endpoint).
+
 ```bash
 datacontract import postgres \
   --source localhost \

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `datacontract api`: `--contract-variables` and `--allow-local-files` options, as alternatives to their environment variables
 - `datacontract import odata` creates a datacontract from OData 4 metadata at an URL or from a local file.
 - `datacontract test` checks constraints and quality rules of nested properties on servers read through DuckDB (#1278)
+- `--detect-pii` on `datacontract import postgres`/`databricks`: marks likely-PII columns with `classification: PII` and `criticalDataElement: true`, using a rule-based, direct-Anthropic, or self-hosted-Databricks-Claude detector (`--pii-detector rule|anthropic|databricks`)
 
 ### Changed
 - `datacontract lint` and `datacontract test`: a quality rule the CLI cannot run is reported as a warning instead of being silently dropped
