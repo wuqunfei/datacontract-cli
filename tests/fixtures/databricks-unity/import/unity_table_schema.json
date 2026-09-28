@@ -74,6 +74,16 @@
       "type_scale": 0,
       "type_json": "{\"name\":\"is_active\",\"type\":\"boolean\",\"nullable\":true,\"metadata\":{}}",
       "nullable": true
+    },
+    {
+      "name": "email",
+      "type_text": "string",
+      "type_name": "STRING",
+      "position": 7,
+      "type_precision": 0,
+      "type_scale": 0,
+      "type_json": "{\"name\":\"email\",\"type\":\"string\",\"nullable\":true,\"metadata\":{}}",
+      "nullable": true
     }
   ],
   "storage_location": "string",

@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional
 
 from open_data_contract_standard.model import OpenDataContractStandard, Relationship, SchemaObject, SchemaProperty
 
+from datacontract.ai.annotate import mark_pii_columns
+from datacontract.ai.pii_detector_factory import pii_detector_factory
 from datacontract.config import Config
 from datacontract.engines.ibis.native_type import reconstruct_native_type
 from datacontract.imports.importer import Importer
@@ -108,6 +110,8 @@ class PostgresImporter(Importer):
             database=import_args.get("database"),
             schema=import_args.get("schema"),
             tables=import_args.get("postgres_table"),
+            detect_pii=import_args.get("detect_pii", False),
+            pii_detector=import_args.get("pii_detector", "rule"),
             config=config,
         )
 
@@ -118,6 +122,8 @@ def import_postgres_from_connector(
     schema: Optional[str] = None,
     port: Optional[int] = None,
     tables: Optional[List[str]] = None,
+    detect_pii: bool = False,
+    pii_detector: str = "rule",
     config: Optional[Config] = None,
 ) -> OpenDataContractStandard:
     if not database:
@@ -166,6 +172,8 @@ def import_postgres_from_connector(
         _create_schema(table, column_rows, primary_key_rows, foreign_key_rows)
         for table in sorted(selected, key=lambda row: row["table_name"].lower())
     ]
+    if detect_pii:
+        mark_pii_columns(odcs, pii_detector_factory.create(pii_detector, config))
     report_unmapped_types(odcs)
     return odcs
 

@@ -91,6 +91,11 @@ schema:
       - name: payload
         logicalType: object
         physicalType: jsonb
+      - name: customer_email
+        logicalType: string
+        logicalTypeOptions:
+          maxLength: 255
+        physicalType: character varying(255)
     """
 
     print("Result", result.to_yaml())
@@ -165,6 +170,42 @@ def test_import_postgres_requires_credentials(monkeypatch):
         _import()
 
     assert "DATACONTRACT_POSTGRES_PASSWORD is not set" in exc_info.value.reason
+
+
+def test_import_postgres_detects_pii_with_rule_based_detector():
+    result = _import(schema="public", postgres_table=["orders"], detect_pii=True)
+
+    orders = result.schema_[0]
+    customer_email = next(p for p in orders.properties if p.name == "customer_email")
+    order_id = next(p for p in orders.properties if p.name == "order_id")
+
+    assert customer_email.classification == "PII"
+    assert customer_email.criticalDataElement is True
+    assert order_id.classification is None
+
+
+def test_cli_detect_pii_option_is_passed_through():
+    with patch("datacontract.imports.postgres_importer.import_postgres_from_connector") as mock_import:
+        mock_import.return_value = OpenDataContractStandard(id="test", kind="DataContract", apiVersion="v3.1.0")
+        runner = CliRunner()
+        result = runner.invoke(
+            app,
+            [
+                "import",
+                "postgres",
+                "--source",
+                "localhost",
+                "--database",
+                "postgres",
+                "--detect-pii",
+                "--pii-detector",
+                "anthropic",
+            ],
+        )
+
+    assert result.exit_code == 0
+    assert mock_import.call_args.kwargs["detect_pii"] is True
+    assert mock_import.call_args.kwargs["pii_detector"] == "anthropic"
 
 
 def test_cli_schema_option_is_not_rewritten_to_json_schema():

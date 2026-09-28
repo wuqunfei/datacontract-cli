@@ -106,6 +106,9 @@ class Config(BaseSettings):
     api_header_authorization: SecretStr | None = None
     max_errors: int | None = None
 
+    # anthropic (used by --pii-detector anthropic)
+    anthropic_api_key: SecretStr | None = None
+
     # athena (credentials come from the s3_* options)
     # overrides for the contract's servers block
     athena_catalog: str | None = None
@@ -135,6 +138,7 @@ class Config(BaseSettings):
     databricks_client_id: str | None = None
     databricks_client_secret: SecretStr | None = None
     databricks_profile: str | None = None
+    databricks_pii_endpoint: str | None = None  # used by --pii-detector databricks
     databricks_auth_type: str | None = None
     # overrides for the contract's servers block
     databricks_catalog: str | None = None
@@ -498,6 +502,10 @@ class Config(BaseSettings):
     def get_max_errors(self) -> int | None:
         return self._int_option("max_errors")
 
+    # --- anthropic ---
+    def get_anthropic_api_key(self, required: bool = False) -> str | None:
+        return self._str_option("anthropic_api_key", required)
+
     # --- athena ---
     def get_athena_catalog(self, required: bool = False) -> str | None:
         return self._str_option("athena_catalog", required)
@@ -561,6 +569,9 @@ class Config(BaseSettings):
 
     def get_databricks_profile(self, required: bool = False) -> str | None:
         return self._str_option("databricks_profile", required)
+
+    def get_databricks_pii_endpoint(self, required: bool = False) -> str | None:
+        return self._str_option("databricks_pii_endpoint", required)
 
     def get_databricks_auth_type(self, required: bool = False) -> str | None:
         return self._str_option("databricks_auth_type", required)

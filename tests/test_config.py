@@ -107,6 +107,32 @@ def test_accessors_unwrap_secrets():
     assert Config(snowflake_password="secret").get_snowflake_password() == "secret"
 
 
+def test_anthropic_api_key_accessor():
+    assert Config(anthropic_api_key="secret").get_anthropic_api_key() == "secret"
+
+
+def test_anthropic_api_key_required_raises_when_missing(monkeypatch):
+    from datacontract.model.exceptions import DataContractException
+
+    monkeypatch.delenv("DATACONTRACT_ANTHROPIC_API_KEY", raising=False)
+
+    with pytest.raises(DataContractException, match="DATACONTRACT_ANTHROPIC_API_KEY"):
+        Config.model_construct().get_anthropic_api_key(required=True)
+
+
+def test_databricks_pii_endpoint_accessor():
+    assert Config(databricks_pii_endpoint="my-endpoint").get_databricks_pii_endpoint() == "my-endpoint"
+
+
+def test_databricks_pii_endpoint_required_raises_when_missing(monkeypatch):
+    from datacontract.model.exceptions import DataContractException
+
+    monkeypatch.delenv("DATACONTRACT_DATABRICKS_PII_ENDPOINT", raising=False)
+
+    with pytest.raises(DataContractException, match="DATACONTRACT_DATABRICKS_PII_ENDPOINT"):
+        Config.model_construct().get_databricks_pii_endpoint(required=True)
+
+
 def test_required_accessor_raises_for_missing_values(monkeypatch):
     from datacontract.model.exceptions import DataContractException
 

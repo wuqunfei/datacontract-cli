@@ -35,6 +35,16 @@ owner_option = Annotated[
     Optional[str], typer.Option(help="The owner or team responsible for managing the data contract.")
 ]
 id_option = Annotated[Optional[str], typer.Option(help="The identifier for the data contract.")]
+detect_pii_option = Annotated[
+    bool,
+    typer.Option(help="Detect likely-PII columns and mark them classification=PII, criticalDataElement=true."),
+]
+pii_detector_option = Annotated[
+    str,
+    typer.Option(
+        help="Detector to use with --detect-pii: rule (default, no credentials needed), anthropic, or databricks."
+    ),
+]
 
 
 def _write_result(result, output: Optional[Path]):
@@ -256,6 +266,8 @@ databricks_table_option = Annotated[
 def import_databricks(
     source: databricks_source_option = None,
     table: databricks_table_option = None,
+    detect_pii: detect_pii_option = False,
+    pii_detector: pii_detector_option = "rule",
     output: output_option = None,
     schema: schema_option = None,
     owner: owner_option = None,
@@ -270,6 +282,8 @@ def import_databricks(
         source=source,
         schema=schema,
         unity_table_full_name=table,
+        detect_pii=detect_pii,
+        pii_detector=pii_detector,
         owner=owner,
         id=id,
     )
@@ -286,6 +300,8 @@ def import_databricks(
 def import_unity(
     source: databricks_source_option = None,
     table: databricks_table_option = None,
+    detect_pii: detect_pii_option = False,
+    pii_detector: pii_detector_option = "rule",
     output: output_option = None,
     schema: schema_option = None,
     owner: owner_option = None,
@@ -293,7 +309,17 @@ def import_unity(
     debug: debug_option = None,
 ):
     """Import a data contract from Databricks Unity Catalog (alias of `import databricks`)."""
-    import_databricks(source=source, table=table, output=output, schema=schema, owner=owner, id=id, debug=debug)
+    import_databricks(
+        source=source,
+        table=table,
+        detect_pii=detect_pii,
+        pii_detector=pii_detector,
+        output=output,
+        schema=schema,
+        owner=owner,
+        id=id,
+        debug=debug,
+    )
 
 
 @import_app.command(
@@ -623,6 +649,8 @@ def import_postgres(
         Optional[List[str]],
         typer.Option(help="Name of a table to import (repeat for multiple tables, omit for all tables in the schema)."),
     ] = None,
+    detect_pii: detect_pii_option = False,
+    pii_detector: pii_detector_option = "rule",
     output: output_option = None,
     owner: owner_option = None,
     id: id_option = None,
@@ -638,6 +666,8 @@ def import_postgres(
         database=database,
         schema=schema,
         postgres_table=table,
+        detect_pii=detect_pii,
+        pii_detector=pii_detector,
         owner=owner,
         id=id,
     )

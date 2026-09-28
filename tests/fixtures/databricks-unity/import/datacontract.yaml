@@ -43,3 +43,6 @@ schema:
   - name: is_active
     physicalType: boolean
     logicalType: boolean
+  - name: email
+    physicalType: string
+    logicalType: string

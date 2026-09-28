@@ -8,6 +8,8 @@ description: "Create a data contract from Databricks Unity Catalog."
 
 Creates a data contract from Databricks Unity Catalog, from an exported JSON file or via the HTTP endpoint, including primary keys and foreign keys declared as Unity Catalog table constraints. Unity Catalog foreign keys are informational only (not enforced), but are still imported as `relationships` since they document real relationships.
 
+Add `--detect-pii` to automatically mark likely-PII columns with `classification: PII` and `criticalDataElement: true`, based on column name. `--pii-detector` selects how: `rule` (default, no credentials needed), `anthropic` (calls the Anthropic API directly), or `databricks` (calls a self-hosted Claude model behind a Databricks Model Serving endpoint).
+
 ```bash
 # From the HTTP endpoint (repeat --table for multiple tables)
 datacontract import databricks --table my_catalog.my_schema.orders

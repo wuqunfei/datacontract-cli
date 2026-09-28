@@ -124,3 +124,17 @@ def test_unity_stays_available_but_is_hidden_from_help():
     assert "databricks" in help_output
     assert "unity" not in help_output
     assert CliRunner().invoke(app, ["import", "unity", "--source", SOURCE]).exit_code == 0
+
+
+def test_import_databricks_detects_pii_with_rule_based_detector():
+    result = DataContract.import_from_source(
+        "databricks", "fixtures/databricks-unity/import/unity_table_schema.json", detect_pii=True
+    )
+
+    schema_obj = result.schema_[0]
+    email = next(p for p in schema_obj.properties if p.name == "email")
+    name = next(p for p in schema_obj.properties if p.name == "name")
+
+    assert email.classification == "PII"
+    assert email.criticalDataElement is True
+    assert name.classification is None
