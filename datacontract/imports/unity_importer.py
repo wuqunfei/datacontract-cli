@@ -39,11 +39,15 @@ class UnityImporter(Importer):
 
 
 def import_unity_from_json(source: str) -> OpenDataContractStandard:
-    """Import data contract specification from a JSON file."""
+    """Import data contract specification from a JSON file.
+
+    The file may contain either a single Unity Catalog table definition
+    or a JSON array of table definitions, in which case each table is
+    imported as its own schema object in the resulting data contract.
+    """
     try:
         with open(source, "r", encoding="utf-8") as file:
             json_contents = json.loads(file.read())
-            unity_schema = TableInfo.from_dict(json_contents)
     except json.JSONDecodeError as e:
         raise DataContractException(
             type="schema",
@@ -53,7 +57,13 @@ def import_unity_from_json(source: str) -> OpenDataContractStandard:
             original_exception=e,
         )
 
-    odcs = convert_unity_schema(create_odcs(), unity_schema)
+    table_dicts = json_contents if isinstance(json_contents, list) else [json_contents]
+
+    odcs = create_odcs()
+    odcs.schema_ = []
+    for table_dict in table_dicts:
+        odcs = convert_unity_schema(odcs, TableInfo.from_dict(table_dict))
+
     report_unmapped_types(odcs)
     return odcs
 
